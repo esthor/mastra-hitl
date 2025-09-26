@@ -21,13 +21,17 @@ import {
   BreadcrumbPage,
 } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
-import { HumanInTheLoopEmailTool, RequestInputToolUI, EmailConfirmationToolUI } from "@/components/tools/human-in-the-loop";
+import {
+  HumanInTheLoopEmailTool,
+  RequestInputToolUI,
+  EmailConfirmationToolUI,
+} from "@/components/tools/human-in-the-loop";
+import { lastAssistantMessageIsCompleteWithToolCalls } from "ai";
 
 // const cloud = new AssistantCloud({
 //   baseUrl: process.env["NEXT_PUBLIC_ASSISTANT_BASE_URL"]!,
 //   anonymous: true,
 // });
-
 
 export const Assistant = () => {
   const runtime = useChatRuntime({
@@ -35,6 +39,7 @@ export const Assistant = () => {
     transport: new AssistantChatTransport({
       api: "/api/chat", // API route
     }),
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
   });
 
   return (
@@ -72,7 +77,6 @@ export const Assistant = () => {
               <HumanInTheLoopEmailTool />
               <RequestInputToolUI />
               <EmailConfirmationToolUI />
-
             </div>
           </SidebarInset>
         </div>
