@@ -21,15 +21,17 @@ import {
   BreadcrumbPage,
 } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
+import { HumanInTheLoopEmailTool, RequestInputToolUI, EmailConfirmationToolUI } from "@/components/tools/human-in-the-loop";
 
-const cloud = new AssistantCloud({
-  baseUrl: process.env["NEXT_PUBLIC_ASSISTANT_BASE_URL"]!,
-  anonymous: true,
-});
+// const cloud = new AssistantCloud({
+//   baseUrl: process.env["NEXT_PUBLIC_ASSISTANT_BASE_URL"]!,
+//   anonymous: true,
+// });
+
 
 export const Assistant = () => {
   const runtime = useChatRuntime({
-    cloud,
+    // cloud,
     transport: new AssistantChatTransport({
       api: "/api/chat", // API route
     }),
@@ -60,13 +62,17 @@ export const Assistant = () => {
                   </BreadcrumbItem>
                   <BreadcrumbSeparator className="hidden md:block" />
                   <BreadcrumbItem>
-                    <BreadcrumbPage>Starter Template</BreadcrumbPage>
+                    <BreadcrumbPage>Human in the Loop</BreadcrumbPage>
                   </BreadcrumbItem>
                 </BreadcrumbList>
               </Breadcrumb>
             </header>
             <div className="flex-1 overflow-hidden">
               <Thread />
+              <HumanInTheLoopEmailTool />
+              <RequestInputToolUI />
+              <EmailConfirmationToolUI />
+
             </div>
           </SidebarInset>
         </div>
