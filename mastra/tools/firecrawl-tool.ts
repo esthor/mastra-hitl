@@ -8,7 +8,7 @@ const firecrawl = new FirecrawlApp({
 
 export const firecrawlTool = createTool({
   id: "crawl-website",
-  description: "Crawl a website",
+  description: "Extract and analyze content from websites for research, context gathering, or information retrieval purposes.",
   inputSchema: z.object({
     url: z.string().describe("URL of the website to crawl")
   }),

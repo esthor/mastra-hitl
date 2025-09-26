@@ -1,10 +1,7 @@
 "use client";
 
-import { AssistantRuntimeProvider, AssistantCloud } from "@assistant-ui/react";
-import {
-  useChatRuntime,
-  AssistantChatTransport,
-} from "@assistant-ui/react-ai-sdk";
+import { AssistantRuntimeProvider } from "@assistant-ui/react";
+import { useChatRuntime } from "@assistant-ui/react-ai-sdk";
 import { Thread } from "@/components/assistant-ui/thread";
 import {
   SidebarInset,
@@ -24,21 +21,18 @@ import { Separator } from "@/components/ui/separator";
 import {
   HumanInTheLoopEmailTool,
   RequestInputToolUI,
-  EmailConfirmationToolUI,
+  ProposeEmailToolUI,
 } from "@/components/tools/human-in-the-loop";
+import { UpdateTodosToolUI } from "@/components/tools/todo";
+import { AskForPlanApprovalToolUI } from "@/components/tools/plan-approval";
+import {
+  FirecrawlToolUI,
+  SendEmailToolUI,
+} from "@/components/tools/automation";
 import { lastAssistantMessageIsCompleteWithToolCalls } from "ai";
-
-// const cloud = new AssistantCloud({
-//   baseUrl: process.env["NEXT_PUBLIC_ASSISTANT_BASE_URL"]!,
-//   anonymous: true,
-// });
 
 export const Assistant = () => {
   const runtime = useChatRuntime({
-    // cloud,
-    transport: new AssistantChatTransport({
-      api: "/api/chat", // API route
-    }),
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
   });
 
@@ -62,12 +56,12 @@ export const Assistant = () => {
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      Build Your Own ChatGPT UX
+                      AI Assistant Framework
                     </BreadcrumbLink>
                   </BreadcrumbItem>
                   <BreadcrumbSeparator className="hidden md:block" />
                   <BreadcrumbItem>
-                    <BreadcrumbPage>Human in the Loop</BreadcrumbPage>
+                    <BreadcrumbPage>Human-in-the-Loop Assistant</BreadcrumbPage>
                   </BreadcrumbItem>
                 </BreadcrumbList>
               </Breadcrumb>
@@ -76,7 +70,11 @@ export const Assistant = () => {
               <Thread />
               <HumanInTheLoopEmailTool />
               <RequestInputToolUI />
-              <EmailConfirmationToolUI />
+              <ProposeEmailToolUI />
+              <UpdateTodosToolUI />
+              <AskForPlanApprovalToolUI />
+              <FirecrawlToolUI />
+              <SendEmailToolUI />
             </div>
           </SidebarInset>
         </div>

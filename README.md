@@ -1,63 +1,89 @@
-This is the [assistant-ui](https://github.com/Yonom/assistant-ui) starter project with [Assistant Cloud](https://cloud.assistant-ui.com) integration.
+# Human-in-the-Loop AI Assistant
 
-## Getting Started
+AI agent that asks for your approval at every step. Built with [assistant-ui](https://github.com/Yonom/assistant-ui) and [Mastra](https://mastra.dev).
 
-### 1. Set up Assistant Cloud
+## Features
 
-1. Sign up for Assistant Cloud at [cloud.assistant-ui.com](https://cloud.assistant-ui.com)
-2. Create a new project in your Assistant Cloud dashboard
-3. Navigate to your project settings to get:
-   - Your Assistant Cloud API URL
-   - Your Assistant Cloud API Key
+✅ **Plan Approval** - Review and edit AI's todo list before execution
+✅ **Input Requests** - Interactive forms when info is needed
+✅ **Email Preview** - Approve drafts before sending
+✅ **Never Acts Alone** - Every action requires explicit approval
 
-### 2. Configure Environment Variables
-
-Create a `.env.local` file in the root directory and add your credentials:
-
-```
-# Provider API Key
-OPENAI_API_KEY=your-openai-api-key
-
-# Assistant Cloud
-NEXT_PUBLIC_ASSISTANT_BASE_URL=your-assistant-cloud-url
-ASSISTANT_API_KEY=your-assistant-cloud-api-key
-```
-
-> **Note**: You can copy `.env.example` to `.env.local` and fill in your values.
-
-### 3. Install Dependencies
+## Quick Start
 
 ```bash
 npm install
-# or
-yarn install
-# or
-pnpm install
-# or
-bun install
+cp .env.example .env.local
+# Add OPENAI_API_KEY or ANTHROPIC_API_KEY to .env.local
+npm run dev
 ```
 
-### 4. Run the Development Server
+Visit http://localhost:3000
+
+## How It Works
+
+1. **AI plans** → Shows editable todo list
+2. **You approve** → Edit tasks or reject plan
+3. **AI executes** → Requests input or shows drafts as needed
+4. **You control** → Approve/reject at each step
+
+## Architecture
+
+```
+components/tools/          # Approval UI components
+├── human-in-the-loop.tsx # Email draft & input UI
+└── plan-approval.tsx     # Todo list approval UI
+
+mastra/                   # Agent backend
+├── agents/               # AI agent with approval rules
+└── tools/                # Tool definitions (6 tools)
+
+app/api/chat/             # Chat endpoint
+```
+
+## Key Files
+
+### Agent Rules (`mastra/agents/email-marketing-agent.ts`)
+```typescript
+instructions: `
+  - Plan approach with updateTodosTool
+  - Ask approval via askForPlanApprovalTool
+  - Only proceed after approval
+`
+```
+
+### Approval UI (`components/tools/plan-approval.tsx`)
+```tsx
+<AskForPlanApprovalToolUI>
+  // Shows editable todo list
+  // Returns: { todos, approved }
+</AskForPlanApprovalToolUI>
+```
+
+## Customization
+
+### Add New Tool
+
+1. Create tool in `mastra/tools/`
+2. Create UI in `components/tools/`
+3. Register in `app/assistant.tsx`
+
+### Modify Behavior
+
+Edit agent instructions in `mastra/agents/email-marketing-agent.ts`
+
+## Environment Variables
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Required (choose one)
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+
+# Optional
+RESEND_API_KEY=re_...        # Email sending
+FIRECRAWL_API_KEY=fc_...     # Web scraping
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## License
 
-## Development
-
-You can start customizing the UI by modifying components in the `components/assistant-ui/` directory.
-
-### Key Files
-
-- `app/assistant.tsx` - Renders the chat interface and sets up the runtime provider with Assistant Cloud
-- `app/api/chat/route.ts` - Chat API endpoint
-- `components/assistant-ui/thread.tsx` - Chat thread component
-- `components/app-sidebar.tsx` - Sidebar with thread list
+MIT

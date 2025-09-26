@@ -112,24 +112,16 @@ const ThreadWelcomeSuggestions: FC = () => {
     <div className="aui-thread-welcome-suggestions grid w-full gap-2 @md:grid-cols-2">
       {[
         {
-          title: "Email me information",
+          title: "Email outreach",
           label: "about assistant-ui",
-          action: "Email me information about assistant-ui",
+          action: "Write an email outreach to a user about assistant-ui",
+          autoSend: true,
         },
         {
-          title: "Explain React hooks",
-          label: "like useState and useEffect",
-          action: "Explain React hooks like useState and useEffect",
-        },
-        {
-          title: "Write a SQL query",
-          label: "to find top customers",
-          action: "Write a SQL query to find top customers",
-        },
-        {
-          title: "Create a meal plan",
-          label: "for healthy weight loss",
-          action: "Create a meal plan for healthy weight loss",
+          title: "Find information",
+          label: "about a company",
+          action: "Find information about ",
+          autoSend: false,
         },
       ].map((suggestedAction, index) => (
         <m.div
@@ -143,7 +135,7 @@ const ThreadWelcomeSuggestions: FC = () => {
           <ThreadPrimitive.Suggestion
             prompt={suggestedAction.action}
             method="replace"
-            autoSend
+            autoSend={suggestedAction.autoSend}
             asChild
           >
             <Button

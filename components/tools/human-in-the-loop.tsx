@@ -1,14 +1,15 @@
 // import { mastra } from "@/mastra";
-import { makeAssistantTool, tool, useAssistantApi } from "@assistant-ui/react";
-import { makeAssistantToolUI, AssistantToolUI } from "@assistant-ui/react";
-import { useState, useCallback, useEffect } from "react";
+import { makeAssistantTool } from "@assistant-ui/react";
+import { makeAssistantToolUI } from "@assistant-ui/react";
+import { useState, useCallback } from "react";
+import type { ChangeEvent, KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
-import { AssistantUIWelcomeEmail } from "@/emails/assistant-ui";
-import { toast } from "sonner";
+import { CheckCircle2, AlertCircle } from "lucide-react";
 
 import z from "zod";
 import { Input } from "../ui/input";
-import { renderAsync } from "@react-email/components";
+import { cn } from "@/lib/utils";
+import { generateId } from "ai";
 
 export const HumanInTheLoopEmailTool = makeAssistantTool({
   toolName: "humanInTheLoopEmailTool",
@@ -33,189 +34,139 @@ export const HumanInTheLoopEmailTool = makeAssistantTool({
   },
 });
 
-export const EmailConfirmationToolUI = makeAssistantToolUI<
+export const ProposeEmailToolUI = makeAssistantToolUI<
   {
     to: string;
     subject: string;
+    body: string;
   },
   {
+    emailHandle?: string;
     to: string;
     subject: string;
-    confirmed?: boolean;
+    body: string;
+    approved?: boolean;
   }
 >({
-  toolName: "email-confirmation",
-  render: ({ args, result }) => {
+  toolName: "proposeEmailTool",
+  render: function Render({ args, result, addResult, status }) {
     const [isConfirmed, setIsConfirmed] = useState(false);
     const [isRejected, setIsRejected] = useState(false);
-    const [emailHtml, setEmailHtml] = useState<string>("");
-    const [isLoading, setIsLoading] = useState(true);
-    const assistantApi = useAssistantApi();
+    const emailBody = result?.body ?? args.body;
 
-    // Render email preview on mount
-    useEffect(() => {
-      const loadEmailPreview = async () => {
-        const html = await renderAsync(
-          AssistantUIWelcomeEmail({
-            userName: "there",
-            steps: [
-              {
-                id: 1,
-                Description: (
-                  <li className="mb-20 text-gray-700" key={1}>
-                    <strong>Install assistant-ui.</strong> Get started in
-                    seconds with{" "}
-                    <a
-                      href="https://assistant-ui.com/docs/getting-started"
-                      className="text-brand"
-                    >
-                      npm install assistant-ui
-                    </a>{" "}
-                    and create your first chat interface.
-                  </li>
-                ),
-              },
-              {
-                id: 2,
-                Description: (
-                  <li className="mb-20 text-gray-700" key={2}>
-                    <strong>Explore our components.</strong> From simple chat
-                    bubbles to complex tool UIs,{" "}
-                    <a
-                      href="https://assistant-ui.com/docs/components"
-                      className="text-brand"
-                    >
-                      browse our component library
-                    </a>{" "}
-                    and see live examples.
-                  </li>
-                ),
-              },
-              {
-                id: 3,
-                Description: (
-                  <li className="mb-20 text-gray-700" key={3}>
-                    <strong>Connect your LLM.</strong> Works seamlessly with
-                    OpenAI, Anthropic, or any LLM provider.{" "}
-                    <a
-                      href="https://assistant-ui.com/docs/providers"
-                      className="text-brand"
-                    >
-                      See integration guides
-                    </a>
-                    .
-                  </li>
-                ),
-              },
-              {
-                id: 4,
-                Description: (
-                  <li className="mb-20 text-gray-700" key={4}>
-                    <strong>Deploy your first assistant.</strong> Ship to
-                    production with built-in streaming, tool calling, and more.{" "}
-                    <a
-                      href="https://assistant-ui.com/docs/deployment"
-                      className="text-brand"
-                    >
-                      Read deployment guide
-                    </a>
-                    .
-                  </li>
-                ),
-              },
-            ],
-            resources: [],
-          }),
-        );
-        setEmailHtml(html);
-        setIsLoading(false);
-      };
-      loadEmailPreview();
-    }, []);
-
-    const handleConfirm = useCallback(async () => {
+    const handleConfirm = useCallback(() => {
       setIsConfirmed(true);
-      toast.success("Email confirmed and sent!");
 
-      // Send confirmation message back to the assistant
-      assistantApi
-        .thread()
-        .append("Email confirmed and sent successfully to " + args.to);
-    }, [assistantApi, args.to]);
+      addResult({
+        emailHandle: generateId(),
+        to: args.to,
+        subject: args.subject,
+        body: emailBody,
+        approved: true,
+      });
+    }, [addResult, args.subject, args.to, emailBody]);
 
-    const handleReject = useCallback(async () => {
+    const handleReject = useCallback(() => {
       setIsRejected(true);
-      toast.error("Email rejected");
 
-      // Send rejection message back to the assistant
-      assistantApi.thread().append("Email was rejected by the user");
-    }, [assistantApi]);
+      addResult({
+        to: args.to,
+        subject: args.subject,
+        body: emailBody,
+        approved: false,
+      });
+    }, [addResult, args.subject, args.to, emailBody]);
 
-    if (isConfirmed || isRejected) {
-      return (
-        <div className="my-3 rounded-lg border px-4 py-3 shadow">
-          <div
-            className={`font-semibold ${isConfirmed ? "text-green-600" : "text-red-600"}`}
-          >
-            Email {isConfirmed ? "Sent Successfully ✓" : "Rejected ✗"}
-          </div>
-          <div className="mt-1 text-sm text-gray-600">To: {args.to}</div>
-        </div>
-      );
-    }
+    const isCompleted = status.type === "complete" || isConfirmed || isRejected;
+    const approved = isCompleted ? isConfirmed || result?.approved : false;
+    const isBodyLoading = status.type === "running";
+    const isToolRejected =
+      status.type === "incomplete" || (isCompleted && !approved);
+
+    const headerStatus = isCompleted
+      ? {
+          Icon: approved ? CheckCircle2 : AlertCircle,
+          label: approved ? "Email Approved" : "Email Rejected",
+          className: approved ? "text-emerald-600" : "text-red-600",
+        }
+      : null;
 
     return (
-      <div className="my-3 flex flex-col gap-4 rounded-lg border px-4 py-4 shadow">
-        <div>
-          <h3 className="text-lg font-semibold">Confirm Email</h3>
-          <p className="mt-1 text-sm text-gray-600">
-            Please review and confirm the email before sending
-          </p>
-        </div>
-
-        <div className="space-y-2">
-          <div className="flex gap-2">
-            <span className="font-medium">To:</span>
-            <span>{args.to}</span>
-          </div>
-          <div className="flex gap-2">
-            <span className="font-medium">Subject:</span>
-            <span>{args.subject || "Welcome to Assistant UI"}</span>
-          </div>
-        </div>
-
-        <div className="rounded-lg border bg-gray-50 p-4">
-          <h4 className="mb-2 font-medium">Email Preview:</h4>
-          {isLoading ? (
-            <div className="py-4 text-center text-gray-500">
-              Loading preview...
-            </div>
-          ) : (
-            <iframe
-              srcDoc={emailHtml}
-              className="h-96 w-full rounded border bg-white"
-              title="Email Preview"
-            />
+      <div
+        className={cn(
+          "my-3 overflow-hidden rounded-lg border bg-white shadow-sm",
+          isToolRejected ? "border-red-400" : "border-slate-200",
+        )}
+      >
+        <div className="flex items-center gap-2 border-b border-slate-200 px-4 py-2 text-xs font-medium tracking-wide text-slate-500 uppercase">
+          Email Approval
+          {headerStatus && (
+            <span
+              className={cn(
+                "ml-auto flex items-center gap-1 text-xs font-semibold",
+                headerStatus.className,
+              )}
+            >
+              <headerStatus.Icon className="h-4 w-4" aria-hidden />
+              {headerStatus.label}
+            </span>
           )}
         </div>
 
-        <div className="flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleReject}
-            disabled={isConfirmed || isRejected}
-          >
-            Reject
-          </Button>
-          <Button
-            type="button"
-            onClick={handleConfirm}
-            disabled={isConfirmed || isRejected}
-          >
-            Confirm & Send
-          </Button>
+        <div className="divide-y divide-slate-200 text-sm text-slate-700">
+          <div className="flex items-center justify-between gap-4 px-4 py-3">
+            <span className="text-xs font-medium tracking-wide text-slate-400 uppercase">
+              To
+            </span>
+            <span className="ml-4 flex-1 text-right break-words text-slate-700">
+              {args.to}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between gap-4 px-4 py-3">
+            <span className="text-xs font-medium tracking-wide text-slate-400 uppercase">
+              Subject
+            </span>
+            <span className="ml-4 flex-1 text-right break-words text-slate-700">
+              {args.subject || "Welcome to Assistant UI"}
+            </span>
+          </div>
+
+          <div className="px-4 py-4">
+            {isBodyLoading ? (
+              <div className="space-y-2" aria-live="polite" aria-busy="true">
+                <div className="h-3 w-3/4 animate-pulse rounded bg-slate-200" />
+                <div className="h-3 w-full animate-pulse rounded bg-slate-200" />
+                <div className="h-3 w-5/6 animate-pulse rounded bg-slate-200" />
+                <span className="sr-only">Generating email body…</span>
+              </div>
+            ) : (
+              <p className="text-sm leading-relaxed whitespace-pre-wrap text-slate-700">
+                {emailBody}
+              </p>
+            )}
+          </div>
         </div>
+
+        {!isCompleted && (
+          <div className="flex justify-end gap-2 border-t border-slate-200 px-4 py-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleReject}
+              disabled={isBodyLoading}
+            >
+              Reject
+            </Button>
+            <Button
+              type="button"
+              onClick={handleConfirm}
+              disabled={isBodyLoading}
+            >
+              Approve Draft
+            </Button>
+          </div>
+        )}
       </div>
     );
   },
@@ -231,56 +182,100 @@ export const RequestInputToolUI = makeAssistantToolUI<
   }
 >({
   toolName: "requestInputTool",
-  render: ({ args, status, result, addResult }) => {
+  render: function Render({ args, status, result, addResult }) {
     const isCompleted = status.type === "complete";
+    const hasSubmittedValue = Boolean(result?.result);
 
     const [inputValue, setInputValue] = useState("");
-    const handleChange = useCallback(
-      (e: React.ChangeEvent<HTMLInputElement>) => {
-        setInputValue(
-          e.target.value);
-      },
-      [],
-    );
 
-    const handleSubmit = useCallback(async () => {
+    const handleChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+      setInputValue(e.target.value);
+    }, []);
+
+    const trimmedInput = inputValue.trim();
+    const isInputValid = trimmedInput.length > 0;
+
+    const handleSubmit = useCallback(() => {
+      const nextValue = inputValue.trim();
+      if (!nextValue) {
+        return;
+      }
+
       addResult({
-        result: inputValue,
+        result: nextValue,
       });
-    }, [inputValue]);
+    }, [addResult, inputValue]);
 
     const handleKeyDown = useCallback(
-      (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (
-          e.key === "Enter" &&
-          !isCompleted &&
-          /^[^\s/$.?#].[^\s]*$/i.test(inputValue)
-        ) {
+      (e: KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter" && !isCompleted && isInputValid) {
           handleSubmit();
         }
       },
-      [handleSubmit, isCompleted, inputValue],
+      [handleSubmit, isCompleted, isInputValid],
     );
 
     return (
-      <div className="my-3 flex flex-col gap-2 rounded-lg border px-4 py-2 shadow">
-        <p className="font-semibold">{args.label}</p>
-        <Input
-          className="rounded border px-2 py-1"
-          aria-label={args.label}
-          onChange={handleChange}
-          value={result?.result || inputValue}
-          disabled={isCompleted}
-          onKeyDown={handleKeyDown}
-        />
-        <Button
-          type="button"
-          className="mt-2 self-end"
-          onClick={handleSubmit}
-          disabled={isCompleted || !/^[^\s/$.?#].[^\s]*$/i.test(inputValue)}
+      <div
+        className="my-3"
+        style={{
+          animation: "fadeInUp 0.4s ease-out forwards",
+        }}
+      >
+        <div
+          className={cn(
+            "overflow-hidden rounded-lg border bg-white shadow-sm",
+            status.type === "incomplete" ? "border-red-400" : "border-slate-200",
+          )}
         >
-          Submit
-        </Button>
+          <div className="flex items-center gap-2 border-b border-slate-200 px-4 py-2 text-xs font-medium tracking-wide text-slate-500 uppercase">
+            User Input
+            {isCompleted && hasSubmittedValue && (
+              <span className="ml-auto flex items-center gap-1 text-emerald-600">
+                <CheckCircle2 className="h-4 w-4" aria-hidden />
+                Submitted
+              </span>
+            )}
+          </div>
+
+          <div className="space-y-3 px-4 py-4 text-sm text-slate-600">
+            <p className="text-slate-700">{args.label}</p>
+
+            {isCompleted && hasSubmittedValue ? (
+              <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm whitespace-pre-wrap text-slate-700">
+                {result?.result}
+              </div>
+            ) : (
+              <>
+                <p className="text-xs text-slate-500">
+                  Provide the requested detail so the assistant can continue.
+                </p>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Input
+                    className={cn(
+                      "h-10 rounded-md border-slate-200 bg-white text-sm text-slate-700",
+                      "focus-visible:border-slate-400 focus-visible:ring-0",
+                    )}
+                    aria-label={args.label}
+                    placeholder={args.placeholder}
+                    onChange={handleChange}
+                    value={inputValue}
+                    disabled={isCompleted}
+                    onKeyDown={handleKeyDown}
+                  />
+                  <Button
+                    type="button"
+                    className="sm:self-start"
+                    onClick={handleSubmit}
+                    disabled={!isInputValid || isCompleted}
+                  >
+                    Submit
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       </div>
     );
   },
