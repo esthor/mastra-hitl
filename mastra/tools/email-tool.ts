@@ -2,7 +2,13 @@ import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const getResendClient = () => {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    throw new Error("RESEND_API_KEY environment variable is not set. The email-tool is currently unavailable.");
+  }
+  return new Resend(apiKey);
+};
 
 const proposedEmailSchema = z.object({
   emailHandle: z.string(),
@@ -101,6 +107,7 @@ export const sendEmailTool = createTool({
 
     const { to, subject, body } = proposedEmail;
 
+    const resend = getResendClient();
     await resend.emails.send({
       from: "Assistant UI <onboarding@resend.dev>",
       to: [to],
