@@ -11,7 +11,7 @@ AI agent that asks for your approval at every step. Built with [assistant-ui](ht
 
 ## Demo
 
-https://github.com/user-attachments/assets/8c19f83a-b29f-4631-9bfc-556c99a3355d
+[Watch the demo](https://github.com/user-attachments/assets/8c19f83a-b29f-4631-9bfc-556c99a3355d)
 
 ## Quick Start
 
